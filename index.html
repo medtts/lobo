@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ロボ配送バランサー</title>
+<style>
+:root{
+  --cream:#EDE7D9;
+  --cream-deep:#E0D8C3;
+  --panel:#F5F1E6;
+  --line:#C9BFA6;
+  --ink:#3A342A;
+  --ink-soft:#6B6152;
+  --brown:#8A6E52;
+  --brown-deep:#5E4A38;
+  --danger:#B0483D;
+  --danger-glow:#E8938A;
+  --safe:#5C7A5A;
+  --gold:#B08D3E;
+  --grid-cell:#DED5BE;
+  --grid-line:#BDB093;
+  --shadow: 0 2px 6px rgba(58,52,42,0.18);
+  --radius:10px;
+  font-size:16px;
+}
+*{box-sizing:border-box;}
+html,body{
+  margin:0;padding:0;
+  background:var(--cream);
+  color:var(--ink);
+  font-family:'Zen Kaku Gothic New','Hiragino Sans',sans-serif;
+  overflow-x:hidden;
+  height:100%;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+@font-face{
+  font-family:'DispFace';
+  src:local('Georgia');
+}
+
+#app{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  max-width:1400px;
+  margin:0 auto;
+}
+
+/* ---------- HEADER ---------- */
+header{
+  padding:18px 20px 10px;
+  border-bottom:2px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+.brand{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+}
+.brand .mark{
+  font-family:Georgia, 'Times New Roman', serif;
+  font-weight:700;
+  font-size:1.5rem;
+  letter-spacing:0.02em;
+  color:var(--brown-deep);
+}
+.brand .sub{
+  font-size:0.72rem;
+  color:var(--ink-soft);
+  letter-spacing:0.15em;
+}
+.header-stats{
+  display:flex;
+  gap:18px;
+  align-items:center;
+}
+.stat{
+  text-align:right;
+}
+.stat .label{
+  font-size:0.65rem;
+  color:var(--ink-soft);
+  letter-spacing:0.08em;
+}
+.stat .value{
+  font-family:Georgia, serif;
+  font-size:1.3rem;
+  font-weight:700;
+  color:var(--brown-deep);
+}
+.stat .value.reward{
+  color:var(--gold);
+}
+.stat .value.danger{
+  color:var(--danger);
+}
+
+/* ---------- MAIN LAYOUT ---------- */
+main{
+  flex:1;
+  display:grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap:16px;
+  padding:16px 20px 24px;
+}
+@media (max-width: 980px){
+  main{
+    grid-template-columns:1fr;
+  }
+}
+
+section.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:var(--shadow);
+}
+.panel-title{
+  font-size:0.78rem;
+  letter-spacing:0.1em;
+  color:var(--brown-deep);
+  font-weight:700;
+  margin:0 0 10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.panel-title::before{
+  content:'';
+  width:4px;height:14px;
+  background:var(--brown);
+  border-radius:2px;
+  display:inline-block;
+}
+
+/* ---------- ROBOT PANEL ---------- */
+#robotPanel{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+}
+.robot-name{
+  font-weight:700;
+  font-size:1.05rem;
+  color:var(--ink);
+}
+.robot-stage{
+  width:100%;
+  aspect-ratio:1/1;
+  background:var(--cream-deep);
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--line);
+}
+.robot-svg-wrap{
+  position:absolute;
+  inset:0;
+}
+.balance-readout{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.balance-bar-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:0.7rem;
+  color:var(--ink-soft);
+}
+.balance-track{
+  flex:1;
+  height:10px;
+  background:var(--cream-deep);
+  border-radius:6px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--line);
+}
+.balance-fill{
+  position:absolute;
+  top:0;bottom:0;
+  background:var(--safe);
+  transition:all 0.25s ease;
+}
+.balance-marker{
+  position:absolute;
+  top:-2px;bottom:-2px;
+  width:2px;
+  background:var(--ink);
+  left:50%;
+}
+.balance-state{
+  text-align:center;
+  font-size:0.85rem;
+  font-weight:700;
+  padding:6px 0;
+  border-radius:6px;
+  margin-top:2px;
+  transition:all 0.2s ease;
+}
+.balance-state.ok{ color:var(--safe); }
+.balance-state.warn{ color:var(--gold); }
+.balance-state.danger{ color:var(--danger); }
+
+.tip-banner{
+  font-size:0.72rem;
+  color:var(--ink-soft);
+  line-height:1.6;
+  background:var(--cream-deep);
+  border-radius:6px;
+  padding:8px 10px;
+  border-left:3px solid var(--brown);
+}
+
+/* ---------- GRID / CENTER ---------- */
+#gridPanel{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.grid-wrap{
+  position:relative;
+  touch-action:none;
+}
+#gridBoard{
+  display:grid;
+  gap:2px;
+  background:var(--grid-line);
+  border:2px solid var(--brown-deep);
+  border-radius:6px;
+  padding:2px;
+  position:relative;
+}
+.cell{
+  background:var(--grid-cell);
+  aspect-ratio:1/1;
+}
+.cell.hover-ok{
+  background:#CFE0C9;
+}
+.cell.hover-bad{
+  background:#E6B9B2;
+}
+
+.placed-item{
+  position:absolute;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  cursor:grab;
+  border:2px solid rgba(0,0,0,0.15);
+  transition:background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.15s ease;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
+  z-index:2;
+}
+.placed-item.dragging{
+  z-index:50;
+  cursor:grabbing;
+  opacity:0.92;
+  box-shadow:0 8px 18px rgba(0,0,0,0.25);
+}
+.placed-item .item-icon{
+  font-size:1.4rem;
+  line-height:1;
+  pointer-events:none;
+}
+.placed-item .item-label{
+  font-size:0.6rem;
+  font-weight:700;
+  color:rgba(0,0,0,0.55);
+  pointer-events:none;
+  margin-top:2px;
+  text-align:center;
+  line-height:1.1;
+}
+.placed-item.danger-flash{
+  animation:dangerPulse 1.1s ease-in-out infinite;
+  border-color:var(--danger);
+}
+@keyframes dangerPulse{
+  0%,100%{ box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25), 0 0 0 0 rgba(176,72,61,0.55);}
+  50%{ box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25), 0 0 0 6px rgba(176,72,61,0.0);}
+}
+.rotate-btn{
+  position:absolute;
+  bottom:-10px;
+  right:-10px;
+  width:26px;height:26px;
+  border-radius:50%;
+  background:var(--brown-deep);
+  color:#fff;
+  border:2px solid var(--panel);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.85rem;
+  cursor:pointer;
+  z-index:60;
+  box-shadow:var(--shadow);
+}
+
+.grid-controls{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+button.ctrl{
+  background:var(--brown);
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  font-size:0.78rem;
+  font-weight:700;
+  cursor:pointer;
+  letter-spacing:0.03em;
+  box-shadow:var(--shadow);
+  transition:transform 0.1s ease, background 0.15s ease;
+}
+button.ctrl:hover{ background:var(--brown-deep); }
+button.ctrl:active{ transform:scale(0.96); }
+button.ctrl.ghost{
+  background:transparent;
+  color:var(--brown-deep);
+  border:1px solid var(--line);
+  box-shadow:none;
+}
+button.ctrl.gold{
+  background:var(--gold);
+}
+button.ctrl:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+/* ---------- TRAY / ITEMS ---------- */
+#trayPanel{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+#trayList{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:520px;
+  overflow-y:auto;
+  padding-right:2px;
+}
+.tray-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:var(--cream-deep);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:grab;
+  position:relative;
+}
+.tray-item:active{ cursor:grabbing; }
+.tray-item .icon{
+  width:34px;height:34px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.2rem;
+  flex-shrink:0;
+}
+.tray-item .info{
+  flex:1;
+  min-width:0;
+}
+.tray-item .name{
+  font-size:0.78rem;
+  font-weight:700;
+  color:var(--ink);
+}
+.tray-item .meta{
+  font-size:0.62rem;
+  color:var(--ink-soft);
+  margin-top:2px;
+}
+.tray-item .rotbtn{
+  width:26px;height:26px;
+  border-radius:50%;
+  background:var(--brown);
+  color:#fff;
+  border:none;
+  font-size:0.8rem;
+  cursor:pointer;
+  flex-shrink:0;
+}
+.tray-item.placed{
+  opacity:0.35;
+  pointer-events:none;
+}
+
+/* ---------- LEGEND / CATEGORY COLORS ---------- */
+.legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  font-size:0.62rem;
+  color:var(--ink-soft);
+}
+.legend span{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+.legend i{
+  width:9px;height:9px;
+  border-radius:2px;
+  display:inline-block;
+}
+
+/* ---------- MODALS / OVERLAYS ---------- */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(58,52,42,0.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+  padding:20px;
+}
+.overlay.show{ display:flex; }
+.modal{
+  background:var(--panel);
+  border-radius:14px;
+  padding:28px;
+  max-width:420px;
+  width:100%;
+  text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,0.3);
+  border:1px solid var(--line);
+}
+.modal h2{
+  font-family:Georgia, serif;
+  margin:0 0 6px;
+  color:var(--brown-deep);
+}
+.modal p{
+  color:var(--ink-soft);
+  font-size:0.9rem;
+  line-height:1.6;
+}
+.modal .big-num{
+  font-family:Georgia, serif;
+  font-size:2.6rem;
+  font-weight:700;
+  margin:10px 0;
+  color:var(--gold);
+}
+.modal .big-num.fail{ color:var(--danger); }
+.modal-actions{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:18px;
+}
+
+/* toast for penalty events */
+#toastWrap{
+  position:fixed;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:300;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:center;
+  pointer-events:none;
+}
+.toast{
+  background:var(--danger);
+  color:#fff;
+  padding:8px 16px;
+  border-radius:20px;
+  font-size:0.8rem;
+  font-weight:700;
+  box-shadow:0 4px 10px rgba(0,0,0,0.25);
+  animation:toastIn 0.25s ease, toastOut 0.4s ease 1.6s forwards;
+}
+@keyframes toastIn{ from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
+@keyframes toastOut{ to{opacity:0; transform:translateY(-6px);} }
+
+/* Fallen robot shake */
+.robot-stage.shake{
+  animation:shakeFall 0.5s ease;
+}
+@keyframes shakeFall{
+  0%,100%{ transform:translate(0,0) rotate(0deg); }
+  20%{ transform:translate(-4px,0) rotate(-2deg); }
+  40%{ transform:translate(4px,0) rotate(2deg); }
+  60%{ transform:translate(-3px,0) rotate(-1.5deg); }
+  80%{ transform:translate(3px,0) rotate(1.5deg); }
+}
+
+footer{
+  text-align:center;
+  font-size:0.65rem;
+  color:var(--ink-soft);
+  padding:10px 0 20px;
+  letter-spacing:0.05em;
+}
+
+::-webkit-scrollbar{ width:8px; }
+::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <span class="mark">ROBO-CARRY</span>
+      <span class="sub">ロボット輸送バランス配送</span>
+    </div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="label">案件</div>
+        <div class="value" id="orderNumber">01</div>
+      </div>
+      <div class="stat">
+        <div class="label">報酬</div>
+        <div class="value reward" id="rewardValue">100</div>
+      </div>
+      <div class="stat">
+        <div class="label">積載重量</div>
+        <div class="value" id="weightValue">0 / 0</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="robotPanel">
+      <div class="panel-title">配送先ロボット</div>
+      <div class="robot-name" id="robotName">-</div>
+      <div class="robot-stage" id="robotStage">
+        <div class="robot-svg-wrap" id="robotSvgWrap"></div>
+      </div>
+      <div class="balance-readout">
+        <div class="balance-bar-row">
+          <span>左</span>
+          <div class="balance-track"><div class="balance-fill" id="balanceFillX"></div><div class="balance-marker"></div></div>
+          <span>右</span>
+        </div>
+        <div class="balance-bar-row">
+          <span>上</span>
+          <div class="balance-track"><div class="balance-fill" id="balanceFillY"></div><div class="balance-marker"></div></div>
+          <span>下</span>
+        </div>
+        <div class="balance-state ok" id="balanceState">バランス良好</div>
+      </div>
+      <div class="tip-banner" id="robotTip">このロボは重心が中央付近にあります。全体を均等に配置しましょう。</div>
+    </section>
+
+    <section class="panel" id="gridPanel">
+      <div class="panel-title">積載ケース（ドラッグして配置・回転）</div>
+      <div class="grid-wrap">
+        <div id="gridBoard"></div>
+      </div>
+      <div class="grid-controls">
+        <button class="ctrl ghost" id="btnReset">積み直す</button>
+        <button class="ctrl gold" id="btnShip">出荷する</button>
+      </div>
+      <div class="legend" id="legendRow"></div>
+    </section>
+
+    <section class="panel" id="trayPanel">
+      <div class="panel-title">荷物リスト</div>
+      <div id="trayList"></div>
+    </section>
+  </main>
+
+  <footer>すべての荷物を積み、バランスが良好な状態で出荷すると報酬が確定します。報酬が0になるとゲームオーバーです。</footer>
+</div>
+
+<div id="toastWrap"></div>
+
+<div class="overlay" id="overlayResult">
+  <div class="modal">
+    <h2 id="resultTitle">出荷完了！</h2>
+    <div class="big-num" id="resultReward">+120</div>
+    <p id="resultDesc">すべての荷物を安全に積み込みました。</p>
+    <div class="modal-actions">
+      <button class="ctrl gold" id="btnNextOrder">次の案件へ</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayGameOver">
+  <div class="modal">
+    <h2>ゲームオーバー</h2>
+    <div class="big-num fail">報酬 0</div>
+    <p>荷物の破損が重なり、報酬が尽きてしまいました。バランスと積み方を見直して再挑戦しましょう。</p>
+    <div class="modal-actions">
+      <button class="ctrl gold" id="btnRestart">最初からやり直す</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ROBO-CARRY : ロボット輸送バランス配送シミュレーター
+   ========================================================= */
+
+const GRID_SIZE = 12;
+let CELL_PX = 44;
+
+/* ---------------- ROBOT DEFINITIONS ----------------
+   重心パターンは3x3(9種)。座標は -1..1 (x: 左->右, y: 上->下)
+   荷物側の重心と合成した「総合重心」がこの範囲から離れるほど危険。
+--------------------------------------------------------*/
+const ROBOTS = [
+  {
+    id:'r_center', name:'標準輸送ロボ「ノーム」', pattern:'center',
+    baseOffset:{x:0,y:0},
+    tip:'このロボは重心が中央付近にあります。荷物も全体に均等配置しましょう。',
+    silhouette:'humanoid_balanced'
+  },
+  {
+    id:'r_right', name:'右腕強化ロボ「アーム・アール」', pattern:'right',
+    baseOffset:{x:0.45,y:0},
+    tip:'右腕が巨大で右側に重心があります。左側に重い荷物を置いて相殺しましょう。',
+    silhouette:'right_arm'
+  },
+  {
+    id:'r_left', name:'左腕強化ロボ「アーム・エル」', pattern:'left',
+    baseOffset:{x:-0.45,y:0},
+    tip:'左腕が巨大で左側に重心があります。右側に重い荷物を置いて相殺しましょう。',
+    silhouette:'left_arm'
+  },
+  {
+    id:'r_top', name:'逆三角ロボ「トライアン」', pattern:'top',
+    baseOffset:{x:0,y:-0.45},
+    tip:'逆三角形の体形で上部に重心があります。下側に重い荷物を配置しましょう。',
+    silhouette:'inverted_triangle'
+  },
+  {
+    id:'r_bottom', name:'どっしりロボ「ベースン」', pattern:'bottom',
+    baseOffset:{x:0,y:0.45},
+    tip:'脚部が大きく下に重心があります。上側に荷物を置いてバランスを取りましょう。',
+    silhouette:'wide_base'
+  },
+  {
+    id:'r_tl', name:'左肩張りロボ「コーナー・NW」', pattern:'topleft',
+    baseOffset:{x:-0.4,y:-0.4},
+    tip:'左上に重心が偏っています。右下側を重めに配置しましょう。',
+    silhouette:'corner_tl'
+  },
+  {
+    id:'r_tr', name:'右肩張りロボ「コーナー・NE」', pattern:'topright',
+    baseOffset:{x:0.4,y:-0.4},
+    tip:'右上に重心が偏っています。左下側を重めに配置しましょう。',
+    silhouette:'corner_tr'
+  },
+  {
+    id:'r_bl', name:'左脚張りロボ「コーナー・SW」', pattern:'bottomleft',
+    baseOffset:{x:-0.4,y:0.4},
+    tip:'左下に重心が偏っています。右上側を重めに配置しましょう。',
+    silhouette:'corner_bl'
+  },
+  {
+    id:'r_br', name:'右脚張りロボ「コーナー・SE」', pattern:'bottomright',
+    baseOffset:{x:0.4,y:0.4},
+    tip:'右下に重心が偏っています。左上側を重めに配置しましょう。',
+    silhouette:'corner_br'
+  },
+];
+
+/* ---------------- ITEM DEFINITIONS ---------------- */
+/*
+  category flags:
+    liquidVertical: true  -> 縦(0/180回転のみ)以外は危険(向き起因)
+    fragileVertical: true -> 上に重い物が乗ると割れる(圧迫起因) かつ縦置き必須
+    crushTop: true -> 上に物が乗ると潰れる(圧迫起因、向きは自由)
+    crushSafeOnTop: true(=lidLike) -> このアイテム自体が「上に何も乗らない状態が必須」(壺・テレビなど)
+    foldable: true -> 回転で専有マス形状が変わる(0/90度で幅高さ入替)
+    magnetPolarity: 'A'|'B' -> 磁石。同極隣接で反発、異極で軽く引き寄せ表示
+    isIron: true -> 磁石に反応
+    weightPenaltyThreshold: 上に乗る合計重量がこの値を超えると危険
+
+  shape: [w,h] マス数（基本の向き, rot=0）
+*/
+const ITEM_DEFS = [
+  { key:'coffee', name:'スタバのコーヒー', icon:'☕', weight:1, shape:[1,2],
+    cat:'liquid', liquidVertical:true, color:'#B98A63', desc:'縦置き必須。倒すと漏れて周囲の価値も下げる。' },
+  { key:'wine', name:'ワインボトル', icon:'🍷', weight:3, shape:[1,3],
+    cat:'liquid', wineRule:true, color:'#7A3B4A', desc:'横向き可。ただし上に重い物を置くと割れる。' },
+  { key:'vase', name:'壺', icon:'🏺', weight:6, shape:[2,2],
+    cat:'fragile', fragileVertical:true, color:'#A9714A', desc:'縦置き必須。重量あり。上に重い物を置くと割れる。' },
+  { key:'dish', name:'食器セット', icon:'🍽️', weight:2, shape:[2,2],
+    cat:'fragile', fragileVertical:true, color:'#C9A15A', desc:'縦置き必須。軽量だが上に重い物を置くと割れる。' },
+  { key:'chips', name:'ポテトチップス', icon:'🥔', weight:1, shape:[2,1],
+    cat:'crush', crushTop:true, color:'#D9B65C', desc:'非常に軽い。少しの重みでも潰れる。' },
+  { key:'tv', name:'テレビ', icon:'📺', weight:7, shape:[3,2],
+    cat:'crush', crushTop:true, heavyFragile:true, color:'#4B4A4E', desc:'重量あり。上に物を置くと画面が割れる。' },
+  { key:'arm', name:'折りたたみアーム式ライト', icon:'🔦', weight:2, shape:[1,2],
+    cat:'foldable', foldable:true, foldedShape:[1,2], expandedShape:[2,2], color:'#5C8A73', desc:'畳むと1×2、展開すると2×2に変化。' },
+  { key:'ladder', name:'伸縮式脚立', icon:'🪜', weight:6, shape:[1,3],
+    cat:'foldable', foldable:true, foldedShape:[1,3], expandedShape:[3,1], color:'#7C6A4E', desc:'畳む/展開で縦横比が変化。重量あり。' },
+  { key:'magnetA', name:'マグネット(N極)', icon:'🧲', weight:1, shape:[1,1],
+    cat:'magnet', magnetPolarity:'A', color:'#B0483D', desc:'同極が隣接すると反発。異極とは引き合う。' },
+  { key:'magnetB', name:'マグネット(S極)', icon:'🧲', weight:1, shape:[1,1],
+    cat:'magnet', magnetPolarity:'B', color:'#3D5CB0', desc:'同極が隣接すると反発。異極とは引き合う。' },
+  { key:'iron', name:'鉄製品', icon:'⚙️', weight:5, shape:[2,1],
+    cat:'magnet', isIron:true, color:'#6B6B6B', desc:'磁性はないがマグネットが近いと引き寄せられる。' },
+  { key:'shirt', name:'Tシャツ', icon:'👕', weight:1, shape:[2,1],
+    cat:'basic', color:'#88A0AE', desc:'軽量。隙間埋めに最適。' },
+  { key:'case', name:'キャリーケース', icon:'🧳', weight:5, shape:[2,3],
+    cat:'basic', color:'#8A6E52', desc:'重量があり大きく場所を取る。' },
+];
+
+const CATEGORY_LABEL = {
+  liquid:'液体', fragile:'割れ物', crush:'圧迫NG', foldable:'可変形状', magnet:'磁石系', basic:'基本'
+};
+const CATEGORY_COLOR = {
+  liquid:'#5C7AAE', fragile:'#B0483D', crush:'#B08D3E', foldable:'#5C8A73', magnet:'#8A5CAE', basic:'#8A6E52'
+};
+
+/* ---------------- GAME STATE ---------------- */
+let state = {
+  reward: 100,
+  orderIndex: 0,
+  robot: null,
+  items: [],       // instance list for current order
+  placements: {},  // instanceId -> {x,y,w,h,rot, folded}
+  grid: [],        // occupancy: grid[y][x] = instanceId or null
+  dragging: null,
+};
+
+function buildOrderItems(){
+  // pick a subset (all categories represented, some randomness in count)
+  const pool = ITEM_DEFS.slice();
+  const count = 9 + Math.floor(Math.random()*4); // 9-12 items
+  const chosen = [];
+  // ensure variety: shuffle and take
+  const shuffled = pool.sort(()=>Math.random()-0.5);
+  for(let i=0;i<count;i++){
+    chosen.push(shuffled[i % shuffled.length]);
+  }
+  return chosen.map((def,i)=>{
+    return {
+      instanceId: 'it_'+i+'_'+def.key,
+      def,
+      rot:0,        // 0 or 90 (degrees) — controls orientation
+      folded:true,  // for foldable items
+      placed:false,
+    };
+  });
+}
+
+function pickRobot(){
+  return ROBOTS[Math.floor(Math.random()*ROBOTS.length)];
+}
+
+function newOrder(){
+  state.robot = pickRobot();
+  state.items = buildOrderItems();
+  state.placements = {};
+  state.grid = Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(null));
+  state.orderIndex++;
+  document.getElementById('orderNumber').textContent = String(state.orderIndex).padStart(2,'0');
+  renderRobot();
+  renderTray();
+  renderGridOccupants();
+  updateWeightAndBalance();
+}
+
+/* ---------------- GRID RENDERING ---------------- */
+function buildGridDOM(){
+  const board = document.getElementById('gridBoard');
+  board.innerHTML='';
+  board.style.gridTemplateColumns = `repeat(${GRID_SIZE}, ${CELL_PX}px)`;
+  board.style.gridTemplateRows = `repeat(${GRID_SIZE}, ${CELL_PX}px)`;
+  for(let y=0;y<GRID_SIZE;y++){
+    for(let x=0;x<GRID_SIZE;x++){
+      const c = document.createElement('div');
+      c.className='cell';
+      c.dataset.x=x; c.dataset.y=y;
+      board.appendChild(c);
+    }
+  }
+}
+
+function computeCellPx(){
+  const wrap = document.querySelector('.grid-wrap');
+  const maxW = Math.min(window.innerWidth - 40, 560);
+  CELL_PX = Math.max(26, Math.floor(maxW / GRID_SIZE));
+}
+
+/* ---------------- TRAY RENDERING ---------------- */
+function renderTray(){
+  const list = document.getElementById('trayList');
+  list.innerHTML='';
+  state.items.forEach(inst=>{
+    const row = document.createElement('div');
+    row.className='tray-item' + (inst.placed?' placed':'');
+    row.dataset.instanceId = inst.instanceId;
+    const catColor = CATEGORY_COLOR[inst.def.cat];
+    row.innerHTML = `
+      <div class="icon" style="background:${catColor}22;color:${catColor}">${inst.def.icon}</div>
+      <div class="info">
+        <div class="name">${inst.def.name}</div>
+        <div class="meta">${shapeLabel(inst)} ・ 重量${inst.def.weight} ・ ${CATEGORY_LABEL[inst.def.cat]}</div>
+      </div>
+      ${needsRotateButton(inst.def) ? `<button class="rotbtn" data-act="rotate-tray" title="回転">⟳</button>` : ''}
+    `;
+    list.appendChild(row);
+
+    if(!inst.placed){
+      attachDragFromTray(row, inst);
+    }
+    const rb = row.querySelector('[data-act="rotate-tray"]');
+    if(rb){
+      rb.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        rotateInstance(inst);
+        renderTray();
+      });
+    }
+  });
+}
+
+function needsRotateButton(def){
+  return def.cat==='liquid' || def.cat==='fragile' || def.cat==='foldable' || def.shape[0]!==def.shape[1] || def.cat==='crush' || def.cat==='basic' || def.cat==='magnet';
+}
+
+function currentShape(inst){
+  const def = inst.def;
+  let w,h;
+  if(def.foldable){
+    const s = inst.folded ? def.foldedShape : def.expandedShape;
+    w=s[0]; h=s[1];
+  } else {
+    w=def.shape[0]; h=def.shape[1];
+  }
+  if(inst.rot===90){ const t=w; w=h; h=t; }
+  return {w,h};
+}
+
+function shapeLabel(inst){
+  const {w,h} = currentShape(inst);
+  return `${w}×${h}`;
+}
+
+function rotateInstance(inst){
+  if(inst.def.foldable){
+    inst.folded = !inst.folded;
+  } else {
+    inst.rot = inst.rot===0 ? 90 : 0;
+  }
+  if(inst.placed){
+    // try to keep same top-left; if doesn't fit, revert
+    const p = state.placements[inst.instanceId];
+    const {w,h} = currentShape(inst);
+    if(canPlace(inst.instanceId, p.x, p.y, w, h)){
+      clearOccupancy(inst.instanceId);
+      p.w=w; p.h=h;
+      setOccupancy(inst.instanceId, p.x, p.y, w, h);
+    } else {
+      // revert rotation
+      if(inst.def.foldable){ inst.folded = !inst.folded; }
+      else { inst.rot = inst.rot===0?90:0; }
+      toast('回転できません（スペース不足）');
+      return;
+    }
+    renderGridOccupants();
+    updateWeightAndBalance();
+  }
+}
+
+/* ---------------- DRAG LOGIC ---------------- */
+let dragCtx = null; // {inst, ghostEl, offsetX, offsetY, fromGrid, origPlacement}
+
+function attachDragFromTray(el, inst){
+  el.addEventListener('pointerdown', (e)=>{
+    if(inst.placed) return;
+    startDrag(e, inst, false);
+  });
+}
+
+function startDrag(e, inst, fromGrid){
+  e.preventDefault();
+  const board = document.getElementById('gridBoard');
+  const boardRect = board.getBoundingClientRect();
+  const {w,h} = currentShape(inst);
+
+  const ghost = document.createElement('div');
+  ghost.className = 'placed-item dragging';
+  styleItemEl(ghost, inst, w, h);
+  ghost.style.position='fixed';
+  ghost.style.left = (e.clientX - (w*CELL_PX)/2) + 'px';
+  ghost.style.top = (e.clientY - (h*CELL_PX)/2) + 'px';
+  ghost.style.width = (w*CELL_PX-2)+'px';
+  ghost.style.height = (h*CELL_PX-2)+'px';
+  document.body.appendChild(ghost);
+
+  // default hover position to current cursor location immediately,
+  // so a click with no movement still has a valid target cell
+  const relXInit = e.clientX - boardRect.left;
+  const relYInit = e.clientY - boardRect.top;
+  const initGx = Math.round((relXInit - (w*CELL_PX)/2) / CELL_PX);
+  const initGy = Math.round((relYInit - (h*CELL_PX)/2) / CELL_PX);
+
+  dragCtx = {
+    inst, ghostEl: ghost,
+    w,h,
+    fromGrid,
+    boardRect,
+    hoverX: initGx,
+    hoverY: initGy,
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    moved: false,
+  };
+  highlightCells(initGx, initGy, w, h);
+
+  if(fromGrid){
+    const p = state.placements[inst.instanceId];
+    dragCtx.origPlacement = {...p};
+    clearOccupancy(inst.instanceId);
+    const cellEl = document.querySelector(`.placed-item[data-instance-id="${inst.instanceId}"]`);
+    if(cellEl) cellEl.style.visibility='hidden';
+  }
+
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd);
+}
+
+function onDragMove(e){
+  if(!dragCtx) return;
+  const {ghostEl, w, h, boardRect} = dragCtx;
+
+  const dx = e.clientX - dragCtx.startClientX;
+  const dy = e.clientY - dragCtx.startClientY;
+  if(Math.abs(dx) > 4 || Math.abs(dy) > 4){
+    dragCtx.moved = true;
+  }
+
+  ghostEl.style.left = (e.clientX - (w*CELL_PX)/2) + 'px';
+  ghostEl.style.top = (e.clientY - (h*CELL_PX)/2) + 'px';
+
+  // compute grid cell under cursor
+  const relX = e.clientX - boardRect.left;
+  const relY = e.clientY - boardRect.top;
+  const gx = Math.round((relX - (w*CELL_PX)/2) / CELL_PX);
+  const gy = Math.round((relY - (h*CELL_PX)/2) / CELL_PX);
+  dragCtx.hoverX = gx; dragCtx.hoverY = gy;
+
+  highlightCells(gx, gy, w, h);
+}
+
+function highlightCells(gx,gy,w,h){
+  document.querySelectorAll('.cell').forEach(c=>{c.classList.remove('hover-ok','hover-bad');});
+  const ok = canPlace(dragCtx.inst.instanceId, gx, gy, w, h);
+  for(let yy=gy; yy<gy+h; yy++){
+    for(let xx=gx; xx<gx+w; xx++){
+      if(xx<0||yy<0||xx>=GRID_SIZE||yy>=GRID_SIZE) continue;
+      const cell = document.querySelector(`.cell[data-x="${xx}"][data-y="${yy}"]`);
+      if(cell) cell.classList.add(ok?'hover-ok':'hover-bad');
+    }
+  }
+}
+
+function onDragEnd(e){
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  if(!dragCtx) return;
+  document.querySelectorAll('.cell').forEach(c=>{c.classList.remove('hover-ok','hover-bad');});
+
+  const {inst, w, h, hoverX, hoverY, fromGrid, origPlacement, ghostEl, moved} = dragCtx;
+  ghostEl.remove();
+
+  // a plain click/tap with no real drag from the tray should not place anything
+  if(!moved && !fromGrid){
+    dragCtx = null;
+    renderTray();
+    renderGridOccupants();
+    updateWeightAndBalance();
+    return;
+  }
+
+  const hasValidTarget = Number.isFinite(hoverX) && Number.isFinite(hoverY);
+  const ok = hasValidTarget && canPlace(inst.instanceId, hoverX, hoverY, w, h);
+
+  if(ok){
+    setOccupancy(inst.instanceId, hoverX, hoverY, w, h);
+    state.placements[inst.instanceId] = {x:hoverX,y:hoverY,w,h,rot:inst.rot,folded:inst.folded};
+    inst.placed = true;
+  } else if(fromGrid && origPlacement){
+    // dropped somewhere invalid while moving an already-placed item: snap back
+    setOccupancy(inst.instanceId, origPlacement.x, origPlacement.y, origPlacement.w, origPlacement.h);
+    state.placements[inst.instanceId] = origPlacement;
+    inst.placed = true;
+  } else {
+    // dropped from tray onto an invalid/occupied spot: stays unplaced, no partial state
+    delete state.placements[inst.instanceId];
+    inst.placed = false;
+  }
+
+  dragCtx = null;
+  renderTray();
+  renderGridOccupants();
+  updateWeightAndBalance();
+}
+
+function canPlace(instanceId, gx, gy, w, h){
+  if(gx<0||gy<0||gx+w>GRID_SIZE||gy+h>GRID_SIZE) return false;
+  for(let yy=gy; yy<gy+h; yy++){
+    for(let xx=gx; xx<gx+w; xx++){
+      const occ = state.grid[yy][xx];
+      if(occ && occ!==instanceId) return false;
+    }
+  }
+  return true;
+}
+function setOccupancy(instanceId,x,y,w,h){
+  for(let yy=y;yy<y+h;yy++) for(let xx=x;xx<x+w;xx++) state.grid[yy][xx]=instanceId;
+}
+function clearOccupancy(instanceId){
+  for(let y=0;y<GRID_SIZE;y++) for(let x=0;x<GRID_SIZE;x++) if(state.grid[y][x]===instanceId) state.grid[y][x]=null;
+}
+
+/* ---------------- ITEM VISUAL STYLE ---------------- */
+function styleItemEl(el, inst, w, h){
+  const def = inst.def;
+  el.style.background = def.color;
+  el.dataset.instanceId = inst.instanceId;
+  el.innerHTML = `<div class="item-icon">${def.icon}</div><div class="item-label">${def.name}</div>`;
+  el.style.width = (w*CELL_PX-2)+'px';
+  el.style.height = (h*CELL_PX-2)+'px';
+}
+
+function renderGridOccupants(){
+  const board = document.getElementById('gridBoard');
+  // remove old placed-item elements
+  board.querySelectorAll('.placed-item').forEach(n=>n.remove());
+
+  const dangerMap = computeDangerMap();
+
+  Object.keys(state.placements).forEach(id=>{
+    const p = state.placements[id];
+    const inst = state.items.find(i=>i.instanceId===id);
+    if(!inst) return;
+    const el = document.createElement('div');
+    el.className='placed-item';
+    styleItemEl(el, inst, p.w, p.h);
+    el.style.left = (p.x*CELL_PX + p.x*2 + 2) + 'px';
+    el.style.top = (p.y*CELL_PX + p.y*2 + 2) + 'px';
+
+    if(dangerMap[id]){
+      el.classList.add('danger-flash');
+      el.style.background = 'var(--danger)';
+    }
+
+    board.appendChild(el);
+    el.addEventListener('pointerdown',(e)=>{
+      e.stopPropagation();
+      startDrag(e, inst, true);
+    });
+
+    if(needsRotateButton(inst.def)){
+      const rb = document.createElement('div');
+      rb.className='rotate-btn';
+      rb.textContent='⟳';
+      rb.addEventListener('pointerdown',(e)=>{ e.stopPropagation(); });
+      rb.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        rotateInstance(inst);
+      });
+      el.appendChild(rb);
+    }
+  });
+}
+
+/* ---------------- DANGER / RULE LOGIC ----------------
+   向き起因: liquidVertical(コーヒー/壺/食器を含むfragileVertical) が
+     rot=90 の場合は常に危険。
+   圧迫起因: そのアイテムの真上マスに他アイテムが存在する場合、
+     wineRule / crushTop / fragileVertical(上に物があると割れる) が対象。
+--------------------------------------------------------*/
+function computeDangerMap(){
+  const danger = {};
+  const ids = Object.keys(state.placements);
+
+  ids.forEach(id=>{
+    const inst = state.items.find(i=>i.instanceId===id);
+    const p = state.placements[id];
+    const def = inst.def;
+    let isDanger = false;
+
+    // 向き起因：液体(コーヒー)、割れ物(壺・食器)は縦以外だと危険
+    if((def.liquidVertical || def.fragileVertical) && inst.rot===90){
+      isDanger = true;
+    }
+
+    // 圧迫起因：真上に何かあるか判定
+    if(!isDanger && (def.wineRule || def.crushTop || def.fragileVertical)){
+      const hasSomethingAbove = checkAboveOccupied(id, p);
+      if(hasSomethingAbove) isDanger = true;
+    }
+
+    if(isDanger) danger[id]=true;
+  });
+
+  return danger;
+}
+
+function checkAboveOccupied(instanceId, p){
+  // 上のマス(y-1行)にこのアイテム以外の占有があるか
+  if(p.y<=0) return false;
+  for(let xx=p.x; xx<p.x+p.w; xx++){
+    const occ = state.grid[p.y-1][xx];
+    if(occ && occ!==instanceId) return true;
+  }
+  return false;
+}
+
+/* ---------------- WEIGHT & BALANCE ---------------- */
+function totalCapacity(){ return 40; }
+
+function updateWeightAndBalance(){
+  let totalWeight = 0;
+  let momentX = 0, momentY = 0;
+
+  Object.keys(state.placements).forEach(id=>{
+    const inst = state.items.find(i=>i.instanceId===id);
+    const p = state.placements[id];
+    const w = inst.def.weight;
+    totalWeight += w;
+
+    // center of item in grid coords normalized -1..1
+    const cx = (p.x + p.w/2) / GRID_SIZE * 2 - 1;
+    const cy = (p.y + p.h/2) / GRID_SIZE * 2 - 1;
+    momentX += cx * w;
+    momentY += cy * w;
+  });
+
+  document.getElementById('weightValue').textContent = `${totalWeight} / ${totalCapacity()}`;
+
+  const robotOffset = state.robot.baseOffset;
+  // combine robot's own bias with cargo moment (normalized by weight, fallback 0)
+  const cargoBiasX = totalWeight>0 ? momentX/Math.max(totalWeight,1) : 0;
+  const cargoBiasY = totalWeight>0 ? momentY/Math.max(totalWeight,1) : 0;
+
+  // total balance = robot offset + cargo bias (cargo should counteract robot offset)
+  const totalX = robotOffset.x + cargoBiasX*0.9;
+  const totalY = robotOffset.y + cargoBiasY*0.9;
+
+  renderBalanceBars(totalX, totalY);
+  return {totalX, totalY, totalWeight};
+}
+
+function renderBalanceBars(totalX, totalY){
+  const fillX = document.getElementById('balanceFillX');
+  const fillY = document.getElementById('balanceFillY');
+  const stateEl = document.getElementById('balanceState');
+
+  const pctX = clamp(50 + totalX*50, 0, 100);
+  const pctY = clamp(50 + totalY*50, 0, 100);
+
+  // fill from center to position
+  paintBar(fillX, pctX);
+  paintBar(fillY, pctY);
+
+  const mag = Math.sqrt(totalX*totalX + totalY*totalY);
+  let cls, label;
+  if(mag < 0.28){ cls='ok'; label='バランス良好'; }
+  else if(mag < 0.5){ cls='warn'; label='やや不安定'; }
+  else { cls='danger'; label='転倒の危険！'; }
+
+  stateEl.className = 'balance-state '+cls;
+  stateEl.textContent = label;
+
+  return {mag, cls};
+}
+
+function paintBar(fillEl, pct){
+  const center=50;
+  const left = Math.min(center,pct);
+  const right = Math.max(center,pct);
+  fillEl.style.left = left+'%';
+  fillEl.style.width = (right-left)+'%';
+  fillEl.style.background = (pct<35||pct>65) ? (pct<20||pct>80 ? 'var(--danger)' : 'var(--gold)') : 'var(--safe)';
+}
+
+function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+
+/* ---------------- ROBOT RENDER (SVG silhouettes) ---------------- */
+function renderRobot(){
+  document.getElementById('robotName').textContent = state.robot.name;
+  document.getElementById('robotTip').textContent = state.robot.tip;
+  const wrap = document.getElementById('robotSvgWrap');
+  wrap.innerHTML = robotSVG(state.robot.silhouette);
+}
+
+function robotSVG(kind){
+  const stroke = '#5E4A38';
+  const fillBody = '#C9BFA6';
+  const fillAccent = '#8A6E52';
+  const base = (extra)=>`
+    <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="2" fill="${fillAccent}" opacity="0"/>
+      ${extra}
+    </svg>`;
+
+  switch(kind){
+    case 'humanoid_balanced':
+      return base(`
+        <rect x="80" y="40" width="40" height="40" rx="8" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="70" y="85" width="60" height="70" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="45" y="90" width="20" height="55" rx="8" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="135" y="90" width="20" height="55" rx="8" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="78" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="104" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="93" cy="58" r="4" fill="${stroke}"/><circle cx="107" cy="58" r="4" fill="${stroke}"/>
+      `);
+    case 'right_arm':
+      return base(`
+        <rect x="80" y="40" width="40" height="40" rx="8" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="70" y="85" width="60" height="70" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="52" y="90" width="14" height="40" rx="6" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="132" y="85" width="34" height="80" rx="12" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <circle cx="152" cy="175" r="14" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="78" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="104" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="93" cy="58" r="4" fill="${stroke}"/><circle cx="107" cy="58" r="4" fill="${stroke}"/>
+      `);
+    case 'left_arm':
+      return base(`
+        <rect x="80" y="40" width="40" height="40" rx="8" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="70" y="85" width="60" height="70" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="34" y="85" width="34" height="80" rx="12" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <circle cx="48" cy="175" r="14" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="134" y="90" width="14" height="40" rx="6" fill="${fillAccent}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="78" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="104" y="155" width="18" height="35" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="93" cy="58" r="4" fill="${stroke}"/><circle cx="107" cy="58" r="4" fill="${stroke}"/>
+      `);
+    case 'inverted_triangle':
+      return base(`
+        <circle cx="100" cy="55" r="26" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <path d="M50 85 L150 85 L110 165 L90 165 Z" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <rect x="82" y="165" width="14" height="28" rx="5" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="104" y="165" width="14" height="28" rx="5" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="92" cy="52" r="4" fill="${stroke}"/><circle cx="108" cy="52" r="4" fill="${stroke}"/>
+      `);
+    case 'wide_base':
+      return base(`
+        <rect x="85" y="35" width="30" height="28" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="88" y="63" width="24" height="30" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <path d="M55 95 L145 95 L165 175 L35 175 Z" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <circle cx="94" cy="48" r="3.5" fill="${stroke}"/><circle cx="106" cy="48" r="3.5" fill="${stroke}"/>
+      `);
+    case 'corner_tl':
+      return base(`
+        <rect x="35" y="35" width="70" height="55" rx="10" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <rect x="105" y="70" width="45" height="45" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="100" y="115" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="125" y="115" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="55" cy="55" r="4" fill="${stroke}"/><circle cx="75" cy="55" r="4" fill="${stroke}"/>
+      `);
+    case 'corner_tr':
+      return base(`
+        <rect x="95" y="35" width="70" height="55" rx="10" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <rect x="50" y="70" width="45" height="45" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="84" y="115" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="59" y="115" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="125" cy="55" r="4" fill="${stroke}"/><circle cx="145" cy="55" r="4" fill="${stroke}"/>
+      `);
+    case 'corner_bl':
+      return base(`
+        <rect x="65" y="35" width="45" height="45" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="30" y="90" width="70" height="60" rx="10" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <rect x="105" y="95" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="80" cy="52" r="4" fill="${stroke}"/><circle cx="95" cy="52" r="4" fill="${stroke}"/>
+      `);
+    case 'corner_br':
+      return base(`
+        <rect x="90" y="35" width="45" height="45" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <rect x="100" y="90" width="70" height="60" rx="10" fill="${fillAccent}" stroke="${stroke}" stroke-width="3.5"/>
+        <rect x="79" y="95" width="16" height="55" rx="6" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>
+        <circle cx="105" cy="52" r="4" fill="${stroke}"/><circle cx="120" cy="52" r="4" fill="${stroke}"/>
+      `);
+    default:
+      return base(`<rect x="70" y="60" width="60" height="80" rx="10" fill="${fillBody}" stroke="${stroke}" stroke-width="3"/>`);
+  }
+}
+
+/* ---------------- LEGEND ---------------- */
+function renderLegend(){
+  const row = document.getElementById('legendRow');
+  row.innerHTML = Object.keys(CATEGORY_LABEL).map(k=>{
+    return `<span><i style="background:${CATEGORY_COLOR[k]}"></i>${CATEGORY_LABEL[k]}</span>`;
+  }).join('');
+}
+
+/* ---------------- TOAST ---------------- */
+function toast(msg){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className='toast';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), 2000);
+}
+
+/* ---------------- SHIP / SCORING ---------------- */
+function attemptShip(){
+  const allPlaced = state.items.every(i=>i.placed);
+  if(!allPlaced){
+    toast('まだ積んでいない荷物があります');
+    return;
+  }
+  const {mag} = (()=>{ const b = updateWeightAndBalance(); return renderBalanceBars(b.totalX, b.totalY); })();
+  const dangerMap = computeDangerMap();
+  const dangerCount = Object.keys(dangerMap).length;
+
+  if(mag >= 0.5 || dangerCount>0){
+    // fail — apply penalty and shake
+    const penalty = 15 + dangerCount*5 + Math.round(mag*20);
+    applyPenalty(penalty, dangerCount>0 ? '荷物が破損しました' : 'ロボが転倒しました');
+    document.getElementById('robotStage').classList.add('shake');
+    setTimeout(()=>document.getElementById('robotStage').classList.remove('shake'), 500);
+    return;
+  }
+
+  // success
+  const reward = 100 + Math.round((0.28-mag)*200);
+  state.reward += reward;
+  document.getElementById('rewardValue').textContent = state.reward;
+  showResult(true, reward);
+}
+
+function applyPenalty(amount, reasonLabel){
+  state.reward -= amount;
+  if(state.reward < 0) state.reward = 0;
+  document.getElementById('rewardValue').textContent = state.reward;
+  toast(`${reasonLabel}（報酬 -${amount}）`);
+  if(state.reward<=0){
+    setTimeout(()=>{ document.getElementById('overlayGameOver').classList.add('show'); }, 500);
+  }
+}
+
+function showResult(success, reward){
+  document.getElementById('resultTitle').textContent = success ? '出荷完了！' : '出荷失敗';
+  document.getElementById('resultReward').textContent = (success? '+':'') + reward;
+  document.getElementById('resultReward').className = 'big-num' + (success?'':' fail');
+  document.getElementById('resultDesc').textContent = success
+    ? 'すべての荷物を安全に積み込みました。次の案件に進みましょう。'
+    : 'バランスが崩れていました。';
+  document.getElementById('overlayResult').classList.add('show');
+}
+
+/* ---------------- EVENTS ---------------- */
+document.getElementById('btnShip').addEventListener('click', attemptShip);
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  state.placements={};
+  state.grid = Array.from({length:GRID_SIZE},()=>Array(GRID_SIZE).fill(null));
+  state.items.forEach(i=>i.placed=false);
+  renderTray();
+  renderGridOccupants();
+  updateWeightAndBalance();
+});
+document.getElementById('btnNextOrder').addEventListener('click', ()=>{
+  document.getElementById('overlayResult').classList.remove('show');
+  newOrder();
+});
+document.getElementById('btnRestart').addEventListener('click', ()=>{
+  document.getElementById('overlayGameOver').classList.remove('show');
+  state.reward = 100;
+  state.orderIndex = 0;
+  document.getElementById('rewardValue').textContent = state.reward;
+  newOrder();
+});
+
+/* keyboard rotate for PC: while dragging, press R or use wheel */
+window.addEventListener('keydown',(e)=>{
+  if(!dragCtx) return;
+  if(e.key==='r' || e.key==='R'){
+    rotateDraggingItem();
+  }
+});
+document.addEventListener('wheel',(e)=>{
+  if(!dragCtx) return;
+  e.preventDefault();
+  rotateDraggingItem();
+},{passive:false});
+document.addEventListener('contextmenu',(e)=>{
+  if(dragCtx){
+    e.preventDefault();
+    rotateDraggingItem();
+  }
+});
+
+function rotateDraggingItem(){
+  const inst = dragCtx.inst;
+  if(inst.def.foldable){ inst.folded = !inst.folded; }
+  else { inst.rot = inst.rot===0?90:0; }
+  const {w,h} = currentShape(inst);
+  dragCtx.w=w; dragCtx.h=h;
+  styleItemEl(dragCtx.ghostEl, inst, w, h);
+}
+
+/* ---------------- INIT ---------------- */
+function init(){
+  computeCellPx();
+  buildGridDOM();
+  renderLegend();
+  newOrder();
+  window.addEventListener('resize', ()=>{
+    computeCellPx();
+    buildGridDOM();
+    renderGridOccupants();
+  });
+}
+init();
+</script>
+</body>
+</html>
