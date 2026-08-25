@@ -108,10 +108,46 @@ main{
   grid-template-columns: 260px 1fr 300px;
   gap:16px;
   padding:16px 20px 24px;
+  min-width:0;
 }
 @media (max-width: 980px){
   main{
     grid-template-columns:1fr;
+    padding:10px 10px 20px;
+    gap:10px;
+  }
+}
+html, body{
+  overflow-x:hidden;
+  width:100%;
+  max-width:100%;
+}
+#app{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+section.panel{
+  min-width:0;
+  max-width:100%;
+}
+.grid-wrap{
+  max-width:100%;
+  display:flex;
+  justify-content:center;
+}
+#gridBoard{
+  max-width:100%;
+}
+@media (max-width:980px){
+  header{
+    padding:12px 12px 8px;
+  }
+  .header-stats{
+    gap:10px;
+  }
+  .stat .value{
+    font-size:1.05rem;
   }
 }
 
@@ -266,6 +302,7 @@ section.panel{
   transition:background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.15s ease;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
   z-index:2;
+  touch-action:none;
 }
 .placed-item.dragging{
   z-index:50;
@@ -372,6 +409,7 @@ button.ctrl:disabled{
   padding:8px 10px;
   cursor:grab;
   position:relative;
+  touch-action:none;
 }
 .tray-item:active{ cursor:grabbing; }
 .tray-item .icon{
@@ -624,7 +662,7 @@ footer{
    ROBO-CARRY : ロボット輸送バランス配送シミュレーター
    ========================================================= */
 
-const GRID_SIZE = 12;
+const GRID_SIZE = 8;
 let CELL_PX = 44;
 
 /* ---------------- ROBOT DEFINITIONS ----------------
@@ -804,9 +842,10 @@ function buildGridDOM(){
 }
 
 function computeCellPx(){
-  const wrap = document.querySelector('.grid-wrap');
-  const maxW = Math.min(window.innerWidth - 40, 560);
-  CELL_PX = Math.max(26, Math.floor(maxW / GRID_SIZE));
+  const isNarrow = window.innerWidth <= 980;
+  const horizontalPadding = isNarrow ? 44 : 40;
+  const maxW = Math.min(window.innerWidth - horizontalPadding, isNarrow ? 420 : 560);
+  CELL_PX = Math.max(isNarrow ? 30 : 26, Math.floor(maxW / GRID_SIZE));
 }
 
 /* ---------------- TRAY RENDERING ---------------- */
@@ -902,6 +941,11 @@ function attachDragFromTray(el, inst){
 
 function startDrag(e, inst, fromGrid){
   e.preventDefault();
+  try{
+    if(e.target && e.target.setPointerCapture && e.pointerId!==undefined){
+      e.target.releasePointerCapture && e.target.hasPointerCapture && e.target.hasPointerCapture(e.pointerId) && e.target.releasePointerCapture(e.pointerId);
+    }
+  }catch(err){}
   const board = document.getElementById('gridBoard');
   const boardRect = board.getBoundingClientRect();
   const {w,h} = currentShape(inst);
@@ -1138,7 +1182,7 @@ function checkAboveOccupied(instanceId, p){
 }
 
 /* ---------------- WEIGHT & BALANCE ---------------- */
-function totalCapacity(){ return 40; }
+function totalCapacity(){ return 26; }
 
 function updateWeightAndBalance(){
   let totalWeight = 0;
