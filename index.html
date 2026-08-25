@@ -104,7 +104,7 @@ header{
 /* ---------- MAIN LAYOUT ---------- */
 main{
   flex:1;
-  display:grid;
+  display: block;
   grid-template-columns: 260px 1fr 300px;
   gap:16px;
   padding:16px 20px 24px;
@@ -112,7 +112,6 @@ main{
 }
 @media (max-width: 980px){
   main{
-    grid-template-columns:1fr;
     padding:10px 10px 20px;
     gap:10px;
   }
@@ -130,6 +129,10 @@ html, body{
 section.panel{
   min-width:0;
   max-width:100%;
+}
+.work-grid {
+    display: flex; 
+    justify-content: center;
 }
 .grid-wrap{
   max-width:100%;
@@ -149,6 +152,9 @@ section.panel{
   .stat .value{
     font-size:1.05rem;
   }
+}
+@media (max-width:768px){
+    .work-grid { display: block; }
 }
 
 section.panel{
@@ -324,9 +330,37 @@ section.panel{
   text-align:center;
   line-height:1.1;
 }
+
+.item-stats-badge {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  pointer-events: none;
+  line-height: 1.2;
+}
+
 .placed-item.danger-flash{
   animation:dangerPulse 1.1s ease-in-out infinite;
   border-color:var(--danger);
+}
+.placed-item.floating-item{
+  border-style:dashed;
+  border-color:var(--gold);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25), 0 4px 6px rgba(58,52,42,0.15);
+}
+.placed-item.floating-item::after{
+  content:'⚠';
+  position:absolute;
+  top:2px;
+  left:2px;
+  font-size:0.7rem;
+  color:var(--gold);
 }
 @keyframes dangerPulse{
   0%,100%{ box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25), 0 0 0 0 rgba(176,72,61,0.55);}
@@ -450,6 +484,18 @@ button.ctrl:disabled{
   pointer-events:none;
 }
 
+@media (max-width: 768px) {
+    #trayList {
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+    .tray-item {
+        flex-direction: row;
+    }
+}
+
 /* ---------- LEGEND / CATEGORY COLORS ---------- */
 .legend{
   display:flex;
@@ -516,7 +562,6 @@ button.ctrl:disabled{
   margin-top:18px;
 }
 
-/* toast for penalty events */
 #toastWrap{
   position:fixed;
   top:16px;
@@ -542,7 +587,6 @@ button.ctrl:disabled{
 @keyframes toastIn{ from{opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 @keyframes toastOut{ to{opacity:0; transform:translateY(-6px);} }
 
-/* Fallen robot shake */
 .robot-stage.shake{
   animation:shakeFall 0.5s ease;
 }
@@ -592,42 +636,50 @@ footer{
   <main>
     <section class="panel" id="robotPanel">
       <div class="panel-title">配送先ロボット</div>
-      <div class="robot-name" id="robotName">-</div>
-      <div class="robot-stage" id="robotStage">
-        <div class="robot-svg-wrap" id="robotSvgWrap"></div>
-      </div>
-      <div class="balance-readout">
-        <div class="balance-bar-row">
-          <span>左</span>
-          <div class="balance-track"><div class="balance-fill" id="balanceFillX"></div><div class="balance-marker"></div></div>
-          <span>右</span>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+            <div>
+                <div class="robot-name" id="robotName">-</div>
+                <div class="robot-stage" id="robotStage" style="width: 150px;">
+                    <div class="robot-svg-wrap" id="robotSvgWrap"></div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; justify-content: center; align-items: stretch; flex: 1; min-width: 200px;">
+                <div class="balance-readout">
+                    <div class="balance-bar-row">
+                    <span>左</span>
+                    <div class="balance-track"><div class="balance-fill" id="balanceFillX"></div><div class="balance-marker"></div></div>
+                    <span>右</span>
+                    </div>
+                    <div class="balance-bar-row">
+                    <span>上</span>
+                    <div class="balance-track"><div class="balance-fill" id="balanceFillY"></div><div class="balance-marker"></div></div>
+                    <span>下</span>
+                    </div>
+                    <div class="balance-state ok" id="balanceState">バランス良好</div>
+                </div>
+                <div class="tip-banner" id="robotTip" style="margin-top: 8px;">このロボは重心が中央付近にあります。全体を均等に配置しましょう。</div>
+            </div>
         </div>
-        <div class="balance-bar-row">
-          <span>上</span>
-          <div class="balance-track"><div class="balance-fill" id="balanceFillY"></div><div class="balance-marker"></div></div>
-          <span>下</span>
-        </div>
-        <div class="balance-state ok" id="balanceState">バランス良好</div>
-      </div>
-      <div class="tip-banner" id="robotTip">このロボは重心が中央付近にあります。全体を均等に配置しましょう。</div>
     </section>
 
-    <section class="panel" id="gridPanel">
-      <div class="panel-title">積載ケース（ドラッグして配置・回転）</div>
-      <div class="grid-wrap">
-        <div id="gridBoard"></div>
-      </div>
-      <div class="grid-controls">
-        <button class="ctrl ghost" id="btnReset">積み直す</button>
-        <button class="ctrl gold" id="btnShip">出荷する</button>
-      </div>
-      <div class="legend" id="legendRow"></div>
-    </section>
+    <div class="work-grid">
+        <section class="panel" id="trayPanel">
+        <div class="panel-title">荷物リスト</div>
+        <div id="trayList"></div>
+        </section>
 
-    <section class="panel" id="trayPanel">
-      <div class="panel-title">荷物リスト</div>
-      <div id="trayList"></div>
-    </section>
+        <section class="panel" id="gridPanel">
+        <div class="panel-title">積載ケース（ドラッグして配置・回転）</div>
+        <div class="grid-wrap">
+            <div id="gridBoard"></div>
+        </div>
+        <div class="grid-controls" style="margin-top: 10px;">
+            <button class="ctrl ghost" id="btnReset">積み直す</button>
+            <button class="ctrl gold" id="btnShip">出荷する</button>
+        </div>
+        <div class="legend" id="legendRow" style="margin-top: 6px;"></div>
+        </section>
+    </div>
   </main>
 
   <footer>すべての荷物を積み、バランスが良好な状態で出荷すると報酬が確定します。報酬が0になるとゲームオーバーです。</footer>
@@ -662,13 +714,9 @@ footer{
    ROBO-CARRY : ロボット輸送バランス配送シミュレーター
    ========================================================= */
 
-const GRID_SIZE = 8;
+const GRID_SIZE = 7;
 let CELL_PX = 44;
 
-/* ---------------- ROBOT DEFINITIONS ----------------
-   重心パターンは3x3(9種)。座標は -1..1 (x: 左->右, y: 上->下)
-   荷物側の重心と合成した「総合重心」がこの範囲から離れるほど危険。
---------------------------------------------------------*/
 const ROBOTS = [
   {
     id:'r_center', name:'標準輸送ロボ「ノーム」', pattern:'center',
@@ -726,43 +774,27 @@ const ROBOTS = [
   },
 ];
 
-/* ---------------- ITEM DEFINITIONS ---------------- */
-/*
-  category flags:
-    liquidVertical: true  -> 縦(0/180回転のみ)以外は危険(向き起因)
-    fragileVertical: true -> 上に重い物が乗ると割れる(圧迫起因) かつ縦置き必須
-    crushTop: true -> 上に物が乗ると潰れる(圧迫起因、向きは自由)
-    crushSafeOnTop: true(=lidLike) -> このアイテム自体が「上に何も乗らない状態が必須」(壺・テレビなど)
-    foldable: true -> 回転で専有マス形状が変わる(0/90度で幅高さ入替)
-    magnetPolarity: 'A'|'B' -> 磁石。同極隣接で反発、異極で軽く引き寄せ表示
-    isIron: true -> 磁石に反応
-    weightPenaltyThreshold: 上に乗る合計重量がこの値を超えると危険
-
-  shape: [w,h] マス数（基本の向き, rot=0）
-*/
 const ITEM_DEFS = [
   { key:'coffee', name:'スタバのコーヒー', icon:'☕', weight:1, shape:[1,2],
     cat:'liquid', liquidVertical:true, color:'#B98A63', desc:'縦置き必須。倒すと漏れて周囲の価値も下げる。' },
   { key:'wine', name:'ワインボトル', icon:'🍷', weight:3, shape:[1,3],
-    cat:'liquid', wineRule:true, color:'#7A3B4A', desc:'横向き可。ただし上に重い物を置くと割れる。' },
+    cat:'liquid', wineRule:true, durability:3, color:'#7A3B4A', desc:'横向き可。真上の合計重量が耐久値(3)を超えると割れる。' },
   { key:'vase', name:'壺', icon:'🏺', weight:6, shape:[2,2],
-    cat:'fragile', fragileVertical:true, color:'#A9714A', desc:'縦置き必須。重量あり。上に重い物を置くと割れる。' },
-  { key:'dish', name:'食器セット', icon:'🍽️', weight:2, shape:[2,2],
-    cat:'fragile', fragileVertical:true, color:'#C9A15A', desc:'縦置き必須。軽量だが上に重い物を置くと割れる。' },
+    cat:'fragile', fragileVertical:true, durability:5, color:'#A9714A', desc:'縦置き必須。重量あり。真上に乗る合計重量が耐久値(5)を超えると割れる。' },
+  { key:'dish', name:'食器セット', icon:'🍽️', weight:2, shape:[2,1],
+    cat:'fragile', fragileVertical:true, durability:2, color:'#C9A15A', desc:'縦置き必須。軽量だが真上の合計重量が耐久値(2)を超えると割れる。' },
   { key:'chips', name:'ポテトチップス', icon:'🥔', weight:1, shape:[2,1],
-    cat:'crush', crushTop:true, color:'#D9B65C', desc:'非常に軽い。少しの重みでも潰れる。' },
+    cat:'crush', crushTop:true, durability:1, color:'#D9B65C', desc:'非常に軽い。真上の合計重量が耐久値(1)を超えると潰れる。' },
   { key:'tv', name:'テレビ', icon:'📺', weight:7, shape:[3,2],
-    cat:'crush', crushTop:true, heavyFragile:true, color:'#4B4A4E', desc:'重量あり。上に物を置くと画面が割れる。' },
+    cat:'crush', crushTop:true, heavyFragile:true, durability:4, color:'#4B4A4E', desc:'重量あり。真上の合計重量が耐久値(4)を超えると画面が割れる。' },
   { key:'arm', name:'折りたたみアーム式ライト', icon:'🔦', weight:2, shape:[1,2],
     cat:'foldable', foldable:true, foldedShape:[1,2], expandedShape:[2,2], color:'#5C8A73', desc:'畳むと1×2、展開すると2×2に変化。' },
   { key:'ladder', name:'伸縮式脚立', icon:'🪜', weight:6, shape:[1,3],
     cat:'foldable', foldable:true, foldedShape:[1,3], expandedShape:[3,1], color:'#7C6A4E', desc:'畳む/展開で縦横比が変化。重量あり。' },
-  { key:'magnetA', name:'マグネット(N極)', icon:'🧲', weight:1, shape:[1,1],
-    cat:'magnet', magnetPolarity:'A', color:'#B0483D', desc:'同極が隣接すると反発。異極とは引き合う。' },
-  { key:'magnetB', name:'マグネット(S極)', icon:'🧲', weight:1, shape:[1,1],
-    cat:'magnet', magnetPolarity:'B', color:'#3D5CB0', desc:'同極が隣接すると反発。異極とは引き合う。' },
+  { key:'magnet', name:'マグネット(N/S極)', icon:'🧲', weight:1, shape:[2,1],
+    cat:'magnet', dualPole:true, color:'#8A5CAE', desc:'両端がN極・S極。直線2マス以内に鉄製品があると引き寄せられて移動する。' },
   { key:'iron', name:'鉄製品', icon:'⚙️', weight:5, shape:[2,1],
-    cat:'magnet', isIron:true, color:'#6B6B6B', desc:'磁性はないがマグネットが近いと引き寄せられる。' },
+    cat:'magnet', isIron:true, color:'#6B6B6B', desc:'磁性はないが重い。マグネットが直線2マス以内にあると、マグネット側が引き寄せられる。' },
   { key:'shirt', name:'Tシャツ', icon:'👕', weight:1, shape:[2,1],
     cat:'basic', color:'#88A0AE', desc:'軽量。隙間埋めに最適。' },
   { key:'case', name:'キャリーケース', icon:'🧳', weight:5, shape:[2,3],
@@ -776,23 +808,20 @@ const CATEGORY_COLOR = {
   liquid:'#5C7AAE', fragile:'#B0483D', crush:'#B08D3E', foldable:'#5C8A73', magnet:'#8A5CAE', basic:'#8A6E52'
 };
 
-/* ---------------- GAME STATE ---------------- */
 let state = {
   reward: 100,
   orderIndex: 0,
   robot: null,
-  items: [],       // instance list for current order
-  placements: {},  // instanceId -> {x,y,w,h,rot, folded}
-  grid: [],        // occupancy: grid[y][x] = instanceId or null
+  items: [],
+  placements: {},
+  grid: [],
   dragging: null,
 };
 
 function buildOrderItems(){
-  // pick a subset (all categories represented, some randomness in count)
   const pool = ITEM_DEFS.slice();
-  const count = 9 + Math.floor(Math.random()*4); // 9-12 items
+  const count = 9 + Math.floor(Math.random()*4);
   const chosen = [];
-  // ensure variety: shuffle and take
   const shuffled = pool.sort(()=>Math.random()-0.5);
   for(let i=0;i<count;i++){
     chosen.push(shuffled[i % shuffled.length]);
@@ -801,8 +830,8 @@ function buildOrderItems(){
     return {
       instanceId: 'it_'+i+'_'+def.key,
       def,
-      rot:0,        // 0 or 90 (degrees) — controls orientation
-      folded:true,  // for foldable items
+      rot:0,
+      folded:true,
       placed:false,
     };
   });
@@ -825,8 +854,15 @@ function newOrder(){
   updateWeightAndBalance();
 }
 
-/* ---------------- GRID RENDERING ---------------- */
+function computeCellPx(){
+  // 画面幅に応じてマスのピクセルサイズを柔軟に計算する
+  const availableWidth = window.innerWidth - 40;
+  const targetSize = Math.floor(availableWidth / (GRID_SIZE + 2));
+  CELL_PX = Math.min(Math.max(targetSize, 32), 52);
+}
+
 function buildGridDOM(){
+  computeCellPx();
   const board = document.getElementById('gridBoard');
   board.innerHTML='';
   board.style.gridTemplateColumns = `repeat(${GRID_SIZE}, ${CELL_PX}px)`;
@@ -841,14 +877,6 @@ function buildGridDOM(){
   }
 }
 
-function computeCellPx(){
-  const isNarrow = window.innerWidth <= 980;
-  const horizontalPadding = isNarrow ? 44 : 40;
-  const maxW = Math.min(window.innerWidth - horizontalPadding, isNarrow ? 420 : 560);
-  CELL_PX = Math.max(isNarrow ? 30 : 26, Math.floor(maxW / GRID_SIZE));
-}
-
-/* ---------------- TRAY RENDERING ---------------- */
 function renderTray(){
   const list = document.getElementById('trayList');
   list.innerHTML='';
@@ -857,32 +885,24 @@ function renderTray(){
     row.className='tray-item' + (inst.placed?' placed':'');
     row.dataset.instanceId = inst.instanceId;
     const catColor = CATEGORY_COLOR[inst.def.cat];
+    const durText = inst.def.durability !== undefined ? ` / 耐久${inst.def.durability}` : '';
     row.innerHTML = `
       <div class="icon" style="background:${catColor}22;color:${catColor}">${inst.def.icon}</div>
       <div class="info">
         <div class="name">${inst.def.name}</div>
-        <div class="meta">${shapeLabel(inst)} ・ 重量${inst.def.weight} ・ ${CATEGORY_LABEL[inst.def.cat]}</div>
+        <div class="meta">${shapeLabel(inst)} ・ 重量${inst.def.weight}${durText} ・ ${CATEGORY_LABEL[inst.def.cat]}</div>
       </div>
-      ${needsRotateButton(inst.def) ? `<button class="rotbtn" data-act="rotate-tray" title="回転">⟳</button>` : ''}
     `;
     list.appendChild(row);
 
     if(!inst.placed){
       attachDragFromTray(row, inst);
     }
-    const rb = row.querySelector('[data-act="rotate-tray"]');
-    if(rb){
-      rb.addEventListener('click',(e)=>{
-        e.stopPropagation();
-        rotateInstance(inst);
-        renderTray();
-      });
-    }
   });
 }
 
 function needsRotateButton(def){
-  return def.cat==='liquid' || def.cat==='fragile' || def.cat==='foldable' || def.shape[0]!==def.shape[1] || def.cat==='crush' || def.cat==='basic' || def.cat==='magnet';
+  return def.liquidVertical || def.fragileVertical || def.wineRule || def.foldable || def.shape[0]!==def.shape[1];
 }
 
 function currentShape(inst){
@@ -910,27 +930,27 @@ function rotateInstance(inst){
     inst.rot = inst.rot===0 ? 90 : 0;
   }
   if(inst.placed){
-    // try to keep same top-left; if doesn't fit, revert
     const p = state.placements[inst.instanceId];
     const {w,h} = currentShape(inst);
+    clearOccupancy(inst.instanceId);
     if(canPlace(inst.instanceId, p.x, p.y, w, h)){
-      clearOccupancy(inst.instanceId);
       p.w=w; p.h=h;
       setOccupancy(inst.instanceId, p.x, p.y, w, h);
     } else {
-      // revert rotation
       if(inst.def.foldable){ inst.folded = !inst.folded; }
       else { inst.rot = inst.rot===0?90:0; }
+      setOccupancy(inst.instanceId, p.x, p.y, p.w, p.h);
       toast('回転できません（スペース不足）');
       return;
     }
+    const magMoved = applyMagnetism();
+    if(magMoved) toast('磁力で荷物が移動しました');
     renderGridOccupants();
     updateWeightAndBalance();
   }
 }
 
-/* ---------------- DRAG LOGIC ---------------- */
-let dragCtx = null; // {inst, ghostEl, offsetX, offsetY, fromGrid, origPlacement}
+let dragCtx = null;
 
 function attachDragFromTray(el, inst){
   el.addEventListener('pointerdown', (e)=>{
@@ -960,8 +980,6 @@ function startDrag(e, inst, fromGrid){
   ghost.style.height = (h*CELL_PX-2)+'px';
   document.body.appendChild(ghost);
 
-  // default hover position to current cursor location immediately,
-  // so a click with no movement still has a valid target cell
   const relXInit = e.clientX - boardRect.left;
   const relYInit = e.clientY - boardRect.top;
   const initGx = Math.round((relXInit - (w*CELL_PX)/2) / CELL_PX);
@@ -1005,7 +1023,6 @@ function onDragMove(e){
   ghostEl.style.left = (e.clientX - (w*CELL_PX)/2) + 'px';
   ghostEl.style.top = (e.clientY - (h*CELL_PX)/2) + 'px';
 
-  // compute grid cell under cursor
   const relX = e.clientX - boardRect.left;
   const relY = e.clientY - boardRect.top;
   const gx = Math.round((relX - (w*CELL_PX)/2) / CELL_PX);
@@ -1036,7 +1053,6 @@ function onDragEnd(e){
   const {inst, w, h, hoverX, hoverY, fromGrid, origPlacement, ghostEl, moved} = dragCtx;
   ghostEl.remove();
 
-  // a plain click/tap with no real drag from the tray should not place anything
   if(!moved && !fromGrid){
     dragCtx = null;
     renderTray();
@@ -1053,18 +1069,18 @@ function onDragEnd(e){
     state.placements[inst.instanceId] = {x:hoverX,y:hoverY,w,h,rot:inst.rot,folded:inst.folded};
     inst.placed = true;
   } else if(fromGrid && origPlacement){
-    // dropped somewhere invalid while moving an already-placed item: snap back
     setOccupancy(inst.instanceId, origPlacement.x, origPlacement.y, origPlacement.w, origPlacement.h);
     state.placements[inst.instanceId] = origPlacement;
     inst.placed = true;
   } else {
-    // dropped from tray onto an invalid/occupied spot: stays unplaced, no partial state
     delete state.placements[inst.instanceId];
     inst.placed = false;
   }
 
   dragCtx = null;
   renderTray();
+  const magMoved = applyMagnetism();
+  if(magMoved) toast('磁力で荷物が移動しました');
   renderGridOccupants();
   updateWeightAndBalance();
 }
@@ -1086,22 +1102,46 @@ function clearOccupancy(instanceId){
   for(let y=0;y<GRID_SIZE;y++) for(let x=0;x<GRID_SIZE;x++) if(state.grid[y][x]===instanceId) state.grid[y][x]=null;
 }
 
-/* ---------------- ITEM VISUAL STYLE ---------------- */
 function styleItemEl(el, inst, w, h){
   const def = inst.def;
   el.style.background = def.color;
   el.dataset.instanceId = inst.instanceId;
-  el.innerHTML = `<div class="item-icon">${def.icon}</div><div class="item-label">${def.name}</div>`;
+  
+  let statsText = `w:${def.weight}`;
+  if(def.durability !== undefined){
+    statsText += ` d:${def.durability}`;
+  }
+
+  if(def.dualPole){
+    const horizontal = w >= h;
+    el.innerHTML = horizontal
+      ? `<div class="item-stats-badge">${statsText}</div>
+         <div style="display:flex;width:100%;height:100%;">
+           <div style="flex:1;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.18);font-weight:800;font-size:0.75rem;">N</div>
+           <div style="flex:1;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;">S</div>
+         </div>`
+      : `<div class="item-stats-badge">${statsText}</div>
+         <div style="display:flex;flex-direction:column;width:100%;height:100%;">
+           <div style="flex:1;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.18);font-weight:800;font-size:0.75rem;">N</div>
+           <div style="flex:1;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;">S</div>
+         </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="item-stats-badge">${statsText}</div>
+      <div class="item-icon">${def.icon}</div>
+      <div class="item-label">${def.name}</div>
+    `;
+  }
   el.style.width = (w*CELL_PX-2)+'px';
   el.style.height = (h*CELL_PX-2)+'px';
 }
 
 function renderGridOccupants(){
   const board = document.getElementById('gridBoard');
-  // remove old placed-item elements
   board.querySelectorAll('.placed-item').forEach(n=>n.remove());
 
   const dangerMap = computeDangerMap();
+  const floatingIds = new Set(findFloatingItems());
 
   Object.keys(state.placements).forEach(id=>{
     const p = state.placements[id];
@@ -1116,6 +1156,9 @@ function renderGridOccupants(){
     if(dangerMap[id]){
       el.classList.add('danger-flash');
       el.style.background = 'var(--danger)';
+    }
+    if(floatingIds.has(id)){
+      el.classList.add('floating-item');
     }
 
     board.appendChild(el);
@@ -1138,12 +1181,6 @@ function renderGridOccupants(){
   });
 }
 
-/* ---------------- DANGER / RULE LOGIC ----------------
-   向き起因: liquidVertical(コーヒー/壺/食器を含むfragileVertical) が
-     rot=90 の場合は常に危険。
-   圧迫起因: そのアイテムの真上マスに他アイテムが存在する場合、
-     wineRule / crushTop / fragileVertical(上に物があると割れる) が対象。
---------------------------------------------------------*/
 function computeDangerMap(){
   const danger = {};
   const ids = Object.keys(state.placements);
@@ -1154,15 +1191,13 @@ function computeDangerMap(){
     const def = inst.def;
     let isDanger = false;
 
-    // 向き起因：液体(コーヒー)、割れ物(壺・食器)は縦以外だと危険
     if((def.liquidVertical || def.fragileVertical) && inst.rot===90){
       isDanger = true;
     }
 
-    // 圧迫起因：真上に何かあるか判定
-    if(!isDanger && (def.wineRule || def.crushTop || def.fragileVertical)){
-      const hasSomethingAbove = checkAboveOccupied(id, p);
-      if(hasSomethingAbove) isDanger = true;
+    if(!isDanger && (def.wineRule || def.crushTop || def.fragileVertical) && def.durability!==undefined){
+      const aboveWeight = sumWeightAbove(id, p);
+      if(aboveWeight > def.durability) isDanger = true;
     }
 
     if(isDanger) danger[id]=true;
@@ -1171,18 +1206,186 @@ function computeDangerMap(){
   return danger;
 }
 
-function checkAboveOccupied(instanceId, p){
-  // 上のマス(y-1行)にこのアイテム以外の占有があるか
-  if(p.y<=0) return false;
-  for(let xx=p.x; xx<p.x+p.w; xx++){
-    const occ = state.grid[p.y-1][xx];
-    if(occ && occ!==instanceId) return true;
+function sumWeightAbove(instanceId, p){
+  if(p.y<=0) return 0;
+  const seen = new Set();
+  let total = 0;
+
+  let currentXRanges = [{x:p.x, w:p.w}];
+  let currentTopY = p.y;
+
+  while(currentTopY > 0){
+    const rowY = currentTopY - 1;
+    const idsInRow = new Set();
+
+    currentXRanges.forEach(range=>{
+      for(let xx=range.x; xx<range.x+range.w; xx++){
+        const occ = state.grid[rowY][xx];
+        if(occ && occ!==instanceId){
+          idsInRow.add(occ);
+        }
+      }
+    });
+
+    if(idsInRow.size===0){
+      break;
+    }
+
+    const nextXRanges = [];
+    idsInRow.forEach(occId=>{
+      if(!seen.has(occId)){
+        seen.add(occId);
+        const otherInst = state.items.find(i=>i.instanceId===occId);
+        const otherP = state.placements[occId];
+        if(otherInst) total += otherInst.def.weight;
+        if(otherP) nextXRanges.push({x:otherP.x, w:otherP.w});
+      }
+    });
+
+    if(nextXRanges.length===0) break;
+
+    const minTopY = Math.min(...Array.from(idsInRow).map(id=>state.placements[id].y));
+    currentXRanges = nextXRanges;
+    currentTopY = minTopY;
   }
-  return false;
+
+  return total;
 }
 
-/* ---------------- WEIGHT & BALANCE ---------------- */
-function totalCapacity(){ return 26; }
+function findFloatingItems(){
+  const floating = [];
+  Object.keys(state.placements).forEach(id=>{
+    const p = state.placements[id];
+    const bottomY = p.y + p.h;
+    if(bottomY >= GRID_SIZE){
+      return;
+    }
+    let supported = false;
+    for(let xx=p.x; xx<p.x+p.w; xx++){
+      const occ = state.grid[bottomY][xx];
+      if(occ && occ!==id){ supported = true; break; }
+    }
+    if(!supported) floating.push(id);
+  });
+  return floating;
+}
+
+function applyMagnetism(){
+  const ids = Object.keys(state.placements);
+  const insts = ids.map(id=>state.items.find(i=>i.instanceId===id)).filter(Boolean);
+  const magnets = insts.filter(i=>i.def.dualPole);
+  const irons = insts.filter(i=>i.def.isIron);
+
+  let moved = false;
+
+  magnets.forEach(mag=>{
+    irons.forEach(iron=>{
+      if(tryAttract(mag, iron)) moved = true;
+    });
+  });
+
+  for(let a=0;a<magnets.length;a++){
+    for(let b=a+1;b<magnets.length;b++){
+      if(tryMutualAttract(magnets[a], magnets[b])) moved = true;
+    }
+  }
+
+  return moved;
+}
+
+function straightLineGap(pA, pB){
+  const rowsOverlap = !(pA.y + pA.h <= pB.y || pB.y + pB.h <= pA.y);
+  const colsOverlap = !(pA.x + pA.w <= pB.x || pB.x + pB.w <= pA.x);
+
+  if(rowsOverlap){
+    let gap;
+    if(pA.x + pA.w <= pB.x) gap = pB.x - (pA.x + pA.w);
+    else if(pB.x + pB.w <= pA.x) gap = pA.x - (pB.x + pB.w);
+    else gap = -1;
+    if(gap>=0 && gap<=2) return {axis:'row', gap};
+  }
+  if(colsOverlap){
+    let gap;
+    if(pA.y + pA.h <= pB.y) gap = pB.y - (pA.y + pA.h);
+    else if(pB.y + pB.h <= pA.y) gap = pA.y - (pB.y + pB.h);
+    else gap = -1;
+    if(gap>=0 && gap<=2) return {axis:'col', gap};
+  }
+  return null;
+}
+
+function tryAttract(magInst, ironInst){
+  const pMag = state.placements[magInst.instanceId];
+  const pIron = state.placements[ironInst.instanceId];
+  if(!pMag || !pIron) return false;
+
+  const rel = straightLineGap(pMag, pIron);
+  if(!rel || rel.gap===0) return false;
+
+  let nx=pMag.x, ny=pMag.y;
+  if(rel.axis==='row'){
+    nx = pMag.x < pIron.x ? pIron.x - pMag.w : pIron.x + pIron.w;
+  } else {
+    ny = pMag.y < pIron.y ? pIron.y - pMag.h : pIron.y + pIron.h;
+  }
+
+  return moveInstanceIfPossible(magInst, nx, ny);
+}
+
+function tryMutualAttract(instA, instB){
+  const pA = state.placements[instA.instanceId];
+  const pB = state.placements[instB.instanceId];
+  if(!pA || !pB) return false;
+
+  const rel = straightLineGap(pA, pB);
+  if(!rel || rel.gap===0) return false;
+
+  let movedAny = false;
+  if(rel.axis==='row'){
+    if(pA.x < pB.x){
+      const half = Math.ceil(rel.gap/2);
+      if(moveInstanceIfPossible(instB, pB.x-half, pB.y)) movedAny = true;
+      const pB2 = state.placements[instB.instanceId];
+      if(moveInstanceIfPossible(instA, pB2.x - pA.w, pA.y)) movedAny = true;
+    } else {
+      const half = Math.ceil(rel.gap/2);
+      if(moveInstanceIfPossible(instB, pB.x+half, pB.y)) movedAny = true;
+      const pB2 = state.placements[instB.instanceId];
+      if(moveInstanceIfPossible(instA, pB2.x + pB2.w, pA.y)) movedAny = true;
+    }
+  } else {
+    if(pA.y < pB.y){
+      const half = Math.ceil(rel.gap/2);
+      if(moveInstanceIfPossible(instB, pB.x, pB.y-half)) movedAny = true;
+      const pB2 = state.placements[instB.instanceId];
+      if(moveInstanceIfPossible(instA, pA.x, pB2.y - pA.h)) movedAny = true;
+    } else {
+      const half = Math.ceil(rel.gap/2);
+      if(moveInstanceIfPossible(instB, pB.x, pB.y+half)) movedAny = true;
+      const pB2 = state.placements[instB.instanceId];
+      if(moveInstanceIfPossible(instA, pA.x, pB2.y + pB2.h)) movedAny = true;
+    }
+  }
+
+  return movedAny;
+}
+
+function moveInstanceIfPossible(inst, nx, ny){
+  const p = state.placements[inst.instanceId];
+  if(!p) return false;
+  if(nx===p.x && ny===p.y) return false;
+  clearOccupancy(inst.instanceId);
+  if(canPlace(inst.instanceId, nx, ny, p.w, p.h)){
+    setOccupancy(inst.instanceId, nx, ny, p.w, p.h);
+    p.x = nx; p.y = ny;
+    return true;
+  } else {
+    setOccupancy(inst.instanceId, p.x, p.y, p.w, p.h);
+    return false;
+  }
+}
+
+function totalCapacity(){ return 20; }
 
 function updateWeightAndBalance(){
   let totalWeight = 0;
@@ -1194,7 +1397,6 @@ function updateWeightAndBalance(){
     const w = inst.def.weight;
     totalWeight += w;
 
-    // center of item in grid coords normalized -1..1
     const cx = (p.x + p.w/2) / GRID_SIZE * 2 - 1;
     const cy = (p.y + p.h/2) / GRID_SIZE * 2 - 1;
     momentX += cx * w;
@@ -1204,11 +1406,9 @@ function updateWeightAndBalance(){
   document.getElementById('weightValue').textContent = `${totalWeight} / ${totalCapacity()}`;
 
   const robotOffset = state.robot.baseOffset;
-  // combine robot's own bias with cargo moment (normalized by weight, fallback 0)
   const cargoBiasX = totalWeight>0 ? momentX/Math.max(totalWeight,1) : 0;
   const cargoBiasY = totalWeight>0 ? momentY/Math.max(totalWeight,1) : 0;
 
-  // total balance = robot offset + cargo bias (cargo should counteract robot offset)
   const totalX = robotOffset.x + cargoBiasX*0.9;
   const totalY = robotOffset.y + cargoBiasY*0.9;
 
@@ -1224,7 +1424,6 @@ function renderBalanceBars(totalX, totalY){
   const pctX = clamp(50 + totalX*50, 0, 100);
   const pctY = clamp(50 + totalY*50, 0, 100);
 
-  // fill from center to position
   paintBar(fillX, pctX);
   paintBar(fillY, pctY);
 
@@ -1251,7 +1450,6 @@ function paintBar(fillEl, pct){
 
 function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
 
-/* ---------------- ROBOT RENDER (SVG silhouettes) ---------------- */
 function renderRobot(){
   document.getElementById('robotName').textContent = state.robot.name;
   document.getElementById('robotTip').textContent = state.robot.tip;
@@ -1352,7 +1550,6 @@ function robotSVG(kind){
   }
 }
 
-/* ---------------- LEGEND ---------------- */
 function renderLegend(){
   const row = document.getElementById('legendRow');
   row.innerHTML = Object.keys(CATEGORY_LABEL).map(k=>{
@@ -1360,7 +1557,6 @@ function renderLegend(){
   }).join('');
 }
 
-/* ---------------- TOAST ---------------- */
 function toast(msg){
   const wrap = document.getElementById('toastWrap');
   const t = document.createElement('div');
@@ -1370,11 +1566,17 @@ function toast(msg){
   setTimeout(()=>t.remove(), 2000);
 }
 
-/* ---------------- SHIP / SCORING ---------------- */
 function attemptShip(){
   const allPlaced = state.items.every(i=>i.placed);
   if(!allPlaced){
     toast('まだ積んでいない荷物があります');
+    return;
+  }
+
+  const floating = findFloatingItems();
+  if(floating.length>0){
+    toast('空中に浮いている荷物があります。隙間なく積んでください');
+    renderGridOccupants();
     return;
   }
   const {mag} = (()=>{ const b = updateWeightAndBalance(); return renderBalanceBars(b.totalX, b.totalY); })();
@@ -1382,7 +1584,6 @@ function attemptShip(){
   const dangerCount = Object.keys(dangerMap).length;
 
   if(mag >= 0.5 || dangerCount>0){
-    // fail — apply penalty and shake
     const penalty = 15 + dangerCount*5 + Math.round(mag*20);
     applyPenalty(penalty, dangerCount>0 ? '荷物が破損しました' : 'ロボが転倒しました');
     document.getElementById('robotStage').classList.add('shake');
@@ -1390,7 +1591,6 @@ function attemptShip(){
     return;
   }
 
-  // success
   const reward = 100 + Math.round((0.28-mag)*200);
   state.reward += reward;
   document.getElementById('rewardValue').textContent = state.reward;
@@ -1417,7 +1617,6 @@ function showResult(success, reward){
   document.getElementById('overlayResult').classList.add('show');
 }
 
-/* ---------------- EVENTS ---------------- */
 document.getElementById('btnShip').addEventListener('click', attemptShip);
 document.getElementById('btnReset').addEventListener('click', ()=>{
   state.placements={};
@@ -1439,7 +1638,6 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   newOrder();
 });
 
-/* keyboard rotate for PC: while dragging, press R or use wheel */
 window.addEventListener('keydown',(e)=>{
   if(!dragCtx) return;
   if(e.key==='r' || e.key==='R'){
@@ -1467,14 +1665,11 @@ function rotateDraggingItem(){
   styleItemEl(dragCtx.ghostEl, inst, w, h);
 }
 
-/* ---------------- INIT ---------------- */
 function init(){
-  computeCellPx();
   buildGridDOM();
   renderLegend();
   newOrder();
   window.addEventListener('resize', ()=>{
-    computeCellPx();
     buildGridDOM();
     renderGridOccupants();
   });
